@@ -16,6 +16,10 @@ def create_app():
     db = pymongo.database.Database(mongo, 'citydata')
     col = pymongo.collection.Collection(db, 'alldata')
 
+    @app.route('/')
+    def root():
+        return: 'add city id to url'
+
     @app.route("/<id>")
     def forecast(id=None):
         try:   

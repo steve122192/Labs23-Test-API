@@ -18,7 +18,7 @@ def create_app():
 
     @app.route('/')
     def root():
-        return: 'add city id to url'
+        return 'add city id to url'
 
     @app.route("/<id>")
     def forecast(id=None):

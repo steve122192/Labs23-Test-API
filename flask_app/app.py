@@ -33,8 +33,16 @@ def create_app():
             future = m.make_future_dataframe(periods=24, freq='M')
             fcst = m.predict(future)
             y_pred = fcst[['ds','yhat']]
-            y_pred = y_pred.to_json(orient='records')
-            return y_pred
+            y_pred['ds'] = y_pred['ds'].dt.strftime('%Y-%m')
+            y_pred['ds'] = y_pred['ds'].drop_duplicates()
+            y_pred = y_pred.dropna()
+            y_pred = y_pred.set_index('ds')
+            y_pred = y_pred.to_dict('index')
+            for key in y_pred:
+                y_pred[key] = y_pred[key]['yhat']
+            y_pred = {'AVG Home Value': y_pred}
+            #y_pred = y_pred.to_json(orient='records')
+            return jsonify(y_pred)
         except:
             return jsonify({"message": "City Not Found!"})  
 

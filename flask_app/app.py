@@ -22,29 +22,39 @@ def create_app():
 
     @app.route("/<id>")
     def forecast(id=None):
-        try:   
-            doc = col.find_one({'_id':int(id)})
-            df = pd.DataFrame.from_dict(doc['Historical Property Value Data']['Average Home Value'], orient='index')
-            df = df.reset_index()
-            df = df.rename(columns={'index': 'ds', 0:'y'})
-            df['ds'] = df['ds'] + '-01'
-            df = df.dropna()
-            m = Prophet(seasonality_mode='multiplicative').fit(df)
-            future = m.make_future_dataframe(periods=24, freq='M')
-            fcst = m.predict(future)
-            y_pred = fcst[['ds','yhat']]
-            y_pred['ds'] = y_pred['ds'].dt.strftime('%Y-%m')
-            y_pred['ds'] = y_pred['ds'].drop_duplicates()
-            y_pred = y_pred.dropna()
-            y_pred = y_pred.set_index('ds')
-            y_pred = y_pred.to_dict('index')
-            for key in y_pred:
-                y_pred[key] = y_pred[key]['yhat']
-            y_pred = {'AVG Home Value': y_pred}
-            #y_pred = y_pred.to_json(orient='records')
-            return jsonify(y_pred)
-        except:
-            return jsonify({"message": "City Not Found!"})  
+        doc = col.find_one({'_id':int(id)})
+        key = 'Predictions'
+        if doc is None:
+            return jsonify({"message": "City Not Found!"})
+        elif key in doc['Historical Property Value Data']:
+            return jsonify(doc)
+        else:
+            try:
+                doc = col.find_one({'_id':int(id)})
+                df = pd.DataFrame.from_dict(doc['Historical Property Value Data']['Average Home Value'], orient='index')
+                df = df.reset_index()
+                df = df.rename(columns={'index': 'ds', 0:'y'})
+                df['ds'] = df['ds'] + '-01'
+                df = df.dropna()
+                m = Prophet(seasonality_mode='multiplicative').fit(df)
+                future = m.make_future_dataframe(periods=24, freq='M')
+                fcst = m.predict(future)
+                y_pred = fcst[['ds','yhat']]
+                y_pred['ds'] = y_pred['ds'].dt.strftime('%Y-%m')
+                y_pred['ds'] = y_pred['ds'].drop_duplicates()
+                y_pred = y_pred.dropna()
+                y_pred = y_pred.set_index('ds')
+                # y_pred = y_pred.to_dict('index')
+                # for key in y_pred:
+                #     y_pred[key] = y_pred[key]['yhat']
+                # y_pred = {'AVG Home Value': y_pred}
+                #y_pred = y_pred.to_json(orient='records')
+                for index, row in y_pred.iterrows():
+                    col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Predictions."+str(index): float(row['yhat'])}})
+                doc = col.find_one({'_id':int(id)})
+                return jsonify(doc)
+            except:
+                return jsonify({"message": "City Not Found!"})  
 
 
     return app

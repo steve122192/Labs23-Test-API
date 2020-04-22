@@ -28,7 +28,7 @@ def create_app():
         key = 'Predictions'
         if doc is None:
             return jsonify({"message": "City Not Found!"})
-        elif key in doc['Historical Property Value Data'] or doc['Total Population'] < 100000:
+        elif key in doc['Historical Property Value Data'] or doc['Total Population'] < 50000:
             return jsonify(doc)
         else:
             try:

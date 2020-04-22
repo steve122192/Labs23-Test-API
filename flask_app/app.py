@@ -6,6 +6,7 @@ import pymongo
 from fbprophet import Prophet
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS, cross_origin
 
 load_dotenv()
 MONGO_URI = os.getenv('MONGO_URI')
@@ -15,6 +16,7 @@ def create_app():
     mongo = pymongo.MongoClient(MONGO_URI, maxPoolSize=50, connect=False)
     db = pymongo.database.Database(mongo, 'citydata')
     col = pymongo.collection.Collection(db, 'alldata')
+    CORS(app)
 
     @app.route('/')
     def root():

@@ -25,10 +25,10 @@ def create_app():
     @app.route("/<id>")
     def forecast(id=None):
         doc = col.find_one({'_id':int(id)})
-        key = 'Upper_Predictions'
+        key = 'Predictions'
         if doc is None:
             return jsonify({"message": "City Not Found!"})
-        elif key in doc['Historical Property Value Data']:
+        elif key in doc['Historical Property Value Data'] or doc['Total Population'] < 100000:
             return jsonify(doc)
         else:
             try:

@@ -23,7 +23,7 @@ def create_app():
     @app.route("/<id>")
     def forecast(id=None):
         doc = col.find_one({'_id':int(id)})
-        key = 'Predictions'
+        key = 'Upper_Predictions'
         if doc is None:
             return jsonify({"message": "City Not Found!"})
         elif key in doc['Historical Property Value Data']:
@@ -37,9 +37,10 @@ def create_app():
                 df['ds'] = df['ds'] + '-01'
                 df = df.dropna()
                 m = Prophet(seasonality_mode='multiplicative').fit(df)
-                future = m.make_future_dataframe(periods=24, freq='M')
+                future = m.make_future_dataframe(periods=60, freq='M')
+                future = future[future['ds']>'2019-11-01']
                 fcst = m.predict(future)
-                y_pred = fcst[['ds','yhat']]
+                y_pred = fcst[['ds','yhat','yhat_lower','yhat_upper']]
                 y_pred['ds'] = y_pred['ds'].dt.strftime('%Y-%m')
                 y_pred['ds'] = y_pred['ds'].drop_duplicates()
                 y_pred = y_pred.dropna()
@@ -51,6 +52,8 @@ def create_app():
                 #y_pred = y_pred.to_json(orient='records')
                 for index, row in y_pred.iterrows():
                     col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Predictions."+str(index): float(row['yhat'])}})
+                    col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Lower_Predictions."+str(index): float(row['yhat_lower'])}}) 
+                    col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Upper_Predictions."+str(index): float(row['yhat_upper'])}})
                 doc = col.find_one({'_id':int(id)})
                 return jsonify(doc)
             except:

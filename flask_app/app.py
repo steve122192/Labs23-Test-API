@@ -25,10 +25,19 @@ def create_app():
     @app.route("/<id>")
     def forecast(id=None):
         doc = col.find_one({'_id':int(id)})
-        key = 'Predictions'
+        key = 'Forecast'
         if doc is None:
             return jsonify({"message": "City Not Found!"})
         elif key in doc['Historical Property Value Data'] or doc['Total Population'] < 50000:
+            return jsonify(doc)
+        elif 'Predictions' in doc['Historical Property Value Data']:
+            forecast = doc['Historical Property Value Data']['Average Home Value']
+            predictions = doc['Historical Property Value Data']['Predictions']
+            forecast.update(predictions)
+            forecast = {k: v for k, v in forecast.items() if v is not None}
+            for item in forecast:
+                col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Forecast."+str(item): float(forecast[str(item)])}})    
+            doc = col.find_one({'_id':int(id)})
             return jsonify(doc)
         else:
             try:
@@ -56,6 +65,15 @@ def create_app():
                     col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Predictions."+str(index): float(row['yhat'])}})
                     col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Lower_Predictions."+str(index): float(row['yhat_lower'])}}) 
                     col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Upper_Predictions."+str(index): float(row['yhat_upper'])}})
+                
+                # Create 'Forecast' Field
+                doc = col.find_one({'_id':int(id)})
+                forecast = doc['Historical Property Value Data']['Average Home Value']
+                predictions = doc['Historical Property Value Data']['Predictions']
+                forecast.update(predictions)
+                forecast = {k: v for k, v in forecast.items() if v is not None}
+                for item in forecast:
+                    col.update_one({ '_id':int(id) }, {'$set': {"Historical Property Value Data.Forecast."+str(item): float(forecast[str(item)])}})
                 doc = col.find_one({'_id':int(id)})
                 return jsonify(doc)
             except:
